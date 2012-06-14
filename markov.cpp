@@ -275,6 +275,15 @@ int main(int argc, char ** argv) {
 	else if (arg == "3") go<3>();
 	else if (arg == "4") go<4>();
 	else if (arg == "5") go<5>();
+	else if (arg == "parse") {
+		tokenizer tok(cin);
+		auto prev = tok.bos;
+		auto cur = tok.bos;
+		while (tok >> cur) {
+			cout << tok.translate_with(cur, prev) << flush;
+			prev = cur;
+		}
+	}
 	else return 1;
 	return 0;
 }
