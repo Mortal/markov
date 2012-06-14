@@ -195,9 +195,8 @@ private:
 	}
 };
 
-template <size_t K>
+template <size_t K, typename tokenizer_t>
 struct kgrams {
-	typedef tokenizer tokenizer_t;
 	typedef typename tokenizer_t::token_t token_t;
 	typedef array<token_t, K> ktoken_t;
 	typedef vector<token_t> adjacent_t;
@@ -271,7 +270,7 @@ private:
 template <size_t K>
 void go() {
 	tokenizer tok(cin);
-	kgrams<K> k(tok);
+	kgrams<K, tokenizer> k(tok);
 	//k.dump();
 	auto prev = tok.bos;
 	while (true) {
