@@ -34,10 +34,6 @@ public:
 	{
 	}
 
-	inline token_t translate(string token) {
-		return tokens[token];
-	}
-
 	inline string translate(token_t token) {
 		if (token == error) return "ERROR";
 		if (token == bos) return " ^ ";
@@ -195,6 +191,66 @@ private:
 	}
 };
 
+struct chartokenizer {
+	typedef istream input_t;
+	typedef size_t token_t;
+
+	const token_t error = 0;
+	const token_t bos = 1;
+	const token_t eos = 10;
+
+	inline chartokenizer(input_t & src)
+		: src(src)
+	{
+	}
+
+	inline string translate(token_t token) {
+		if (token == error) return "ERROR";
+		if (token == bos) return " ^ ";
+		if (token == eos) return "\n";
+		return string(1, static_cast<char>(token));
+	}
+
+	inline string translate_with(token_t token, token_t prev) {
+		if (token == eos && prev == eos) return "";
+		return translate(token);
+	}
+
+	inline operator bool() {
+		return has_input();
+	}
+
+	inline bool has_input() {
+		if (buffer.size()) return true;
+		char c;
+		src.get(c);
+		if (!src.good()) return false;
+		push_token(c);
+		return true;
+	}
+
+	inline chartokenizer & operator>>(token_t & dest) {
+		if (!has_input()) return *this;
+		dest = pop_input();
+		return *this;
+	}
+
+	inline token_t pop_input() {
+		if (!has_input()) throw "No input";
+		token_t val = buffer.front();
+		buffer.pop();
+		return val;
+	}
+
+private:
+	input_t & src;
+	queue<token_t> buffer;
+	inline void push_token(token_t token) {
+		buffer.push(token);
+	}
+
+};
+
 template <size_t K, typename tokenizer_t>
 struct kgrams {
 	typedef typename tokenizer_t::token_t token_t;
@@ -291,6 +347,15 @@ int main(int argc, char ** argv) {
 	else if (arg == "3") go<3, tokenizer>();
 	else if (arg == "4") go<4, tokenizer>();
 	else if (arg == "5") go<5, tokenizer>();
+	else if (arg == "c1") go<1, chartokenizer>();
+	else if (arg == "c2") go<2, chartokenizer>();
+	else if (arg == "c3") go<3, chartokenizer>();
+	else if (arg == "c4") go<4, chartokenizer>();
+	else if (arg == "c5") go<5, chartokenizer>();
+	else if (arg == "c6") go<6, chartokenizer>();
+	else if (arg == "c7") go<7, chartokenizer>();
+	else if (arg == "c8") go<8, chartokenizer>();
+	else if (arg == "c9") go<9, chartokenizer>();
 	else if (arg == "parse") {
 		tokenizer tok(cin);
 		auto prev = tok.bos;
