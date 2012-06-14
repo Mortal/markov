@@ -267,10 +267,10 @@ private:
 	}
 };
 
-template <size_t K>
+template <size_t K, typename tokenizer_t>
 void go() {
-	tokenizer tok(cin);
-	kgrams<K, tokenizer> k(tok);
+	tokenizer_t tok(cin);
+	kgrams<K, tokenizer_t> k(tok);
 	//k.dump();
 	auto prev = tok.bos;
 	while (true) {
@@ -286,11 +286,11 @@ int main(int argc, char ** argv) {
 		return 1;
 	}
 	string arg(argv[1]);
-	if (arg == "1") go<1>();
-	else if (arg == "2") go<2>();
-	else if (arg == "3") go<3>();
-	else if (arg == "4") go<4>();
-	else if (arg == "5") go<5>();
+	if (arg == "1") go<1, tokenizer>();
+	else if (arg == "2") go<2, tokenizer>();
+	else if (arg == "3") go<3, tokenizer>();
+	else if (arg == "4") go<4, tokenizer>();
+	else if (arg == "5") go<5, tokenizer>();
 	else if (arg == "parse") {
 		tokenizer tok(cin);
 		auto prev = tok.bos;
