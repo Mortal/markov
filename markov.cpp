@@ -128,8 +128,8 @@ private:
 						push_token(hyphen);
 						break;
 					}
-					if (line[i] == ',') {
-						push_word(",");
+					if (postjoiner(string(1, line[i]))) {
+						push_word(string(1, line[i]));
 						s = ENDWORD;
 						break;
 					}
