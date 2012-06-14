@@ -251,9 +251,10 @@ private:
 	}
 };
 
-int main() {
+template <size_t K>
+void go() {
 	tokenizer tok(cin);
-	kgrams<2> k(tok);
+	kgrams<K> k(tok);
 	//k.dump();
 	auto prev = tok.bos;
 	while (true) {
@@ -261,6 +262,20 @@ int main() {
 		cout << tok.translate_with(cur, prev) << flush;
 		prev = cur;
 	}
+}
+
+int main(int argc, char ** argv) {
+	if (argc < 2) {
+		cout << "Usage: " << argv[0] << " K" << endl;
+		return 1;
+	}
+	string arg(argv[1]);
+	if (arg == "1") go<1>();
+	else if (arg == "2") go<2>();
+	else if (arg == "3") go<3>();
+	else if (arg == "4") go<4>();
+	else if (arg == "5") go<5>();
+	else return 1;
 	return 0;
 }
 // vim:set ts=4 sts=4 sw=4:
