@@ -129,7 +129,7 @@ private:
 						break;
 					}
 					if (line[i] == ',') {
-						push_token(comma);
+						push_word(",");
 						s = ENDWORD;
 						break;
 					}
