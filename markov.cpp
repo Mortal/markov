@@ -5,7 +5,7 @@
 #include <array>
 #include <queue>
 #include <random>
-#include <cctype> // isalpha
+#include <cctype> // isalnum
 
 using namespace std;
 
@@ -55,6 +55,8 @@ public:
 			case '!':
 			case '?':
 			case '.':
+			case ':':
+			case ';':
 				return true;
 		}
 		return false;
@@ -101,8 +103,8 @@ public:
 	}
 
 private:
-	inline bool isalpha(char c) {
-		if (std::isalpha(c) || c == '\'') return true;
+	inline bool isalnum(char c) {
+		if (std::isalnum(c) || c == '\'') return true;
 		return false;
 	}
 
@@ -112,11 +114,13 @@ private:
 		enum state {
 			NOWORD,
 			ENDWORD,
-			WORD
+			WORD,
+			URL
 		};
 		state s = NOWORD;
-		size_t wordbegin = 0;
+		stringstream wordbuf;
 		for (size_t i = 0; i < line.size(); ++i) {
+			if (!isprint(line[i])) continue;
 			switch (s) {
 				case ENDWORD:
 					s = NOWORD;
@@ -137,18 +141,31 @@ private:
 				case NOWORD:
 					if (line[i] == '"') {
 						push_token(quote);
-					} else if (isalpha(line[i])) {
+					} else if (isalnum(line[i]) || line[i] == ':') {
 						s = WORD;
-						wordbegin = i;
+						wordbuf.str("");
+						wordbuf << line[i];
 					} else if (!isspace(line[i])) {
 						push_word(string(1, line[i]));
 					}
 					break;
 				case WORD:
-					if (!isalpha(line[i])) {
-						push_word(line.substr(wordbegin, i-wordbegin));
-						s = ENDWORD;
-						--i;
+					if (!isalnum(line[i])) {
+						string word = wordbuf.str();
+						if ((word == "http" || word == "https") && line[i] == ':') {
+							s = URL;
+						} else {
+							push_word(word);
+							s = ENDWORD;
+							--i;
+						}
+					} else {
+						wordbuf << line[i];
+					}
+					break;
+				case URL:
+					if (line[i] == ' ') {
+						s = NOWORD;
 					}
 					break;
 			}
