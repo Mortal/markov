@@ -5,6 +5,7 @@
 #include <array>
 #include <queue>
 #include <random>
+#include <cctype> // isalpha
 
 using namespace std;
 
@@ -14,20 +15,22 @@ struct tokenizer {
 
 private:
 	input_t & src;
+	size_t specials; // number of special tokens
 	map<string, token_t> tokens;
 	map<token_t, string> tokens_rev;
 	queue<token_t> buffer;
 
 public:
-	const token_t error;
-	const token_t bos;
-	const token_t eos;
+	const token_t error = add_special_token();
+	const token_t bos = add_special_token();
+	const token_t eos = add_special_token();
+	const token_t quote = add_special_token();
+	const token_t unquote = add_special_token();
+	const token_t hyphen = add_special_token();
 
 	inline tokenizer(input_t & src)
 		: src(src)
-		, error(add_token(" error "))
-		, bos(add_token(" ^ "))
-		, eos(add_token("\n\n"))
+		, specials(0)
 	{
 	}
 
@@ -36,7 +39,43 @@ public:
 	}
 
 	inline string translate(token_t token) {
+		if (token == error) return "ERROR";
+		if (token == bos) return " ^ ";
+		if (token == eos) return " $ ";
+		if (token == quote) return "\"";
+		if (token == unquote) return "\"";
+		if (token == hyphen) return "-";
 		return tokens_rev[token];
+	}
+
+	inline bool postjoiner(string word) {
+		if (word.size() != 1) return false;
+		switch (word[0]) {
+			case ',':
+			case '!':
+			case '?':
+			case '.':
+				return true;
+		}
+		return false;
+	}
+
+	inline bool prejoiner(string word) {
+		return word == "$";
+	}
+
+	inline string translate_with(token_t token, token_t prev) {
+		if (token == eos) return "";
+		string word = translate(token);
+		if (prev == eos) return "\n"+word;
+		if (prev == bos
+			|| prev == quote
+			|| token == unquote
+			|| postjoiner(word)
+			|| token == hyphen
+			|| prev == hyphen) return word;
+		if (prejoiner(translate(prev))) return word;
+		return ' '+word;
 	}
 
 	inline operator bool() {
@@ -51,6 +90,7 @@ public:
 	inline tokenizer & operator>>(token_t & dest) {
 		if (!has_input()) return *this;
 		dest = pop_input();
+		return *this;
 	}
 
 	inline token_t pop_input() {
@@ -61,23 +101,80 @@ public:
 	}
 
 private:
-	inline bool get_some_input() {
-		string word;
-		if (!(src >> word)) return false;
+	inline bool isalpha(char c) {
+		if (std::isalpha(c) || c == '\'') return true;
+		return false;
+	}
 
-		push_word(word);
+	inline bool get_some_input() {
+		string line;
+		if (!getline(src, line)) return false;
+		enum state {
+			NOWORD,
+			ENDWORD,
+			WORD
+		};
+		state s = NOWORD;
+		size_t wordbegin = 0;
+		for (size_t i = 0; i < line.size(); ++i) {
+			switch (s) {
+				case ENDWORD:
+					s = NOWORD;
+					if (line[i] == '"') {
+						push_token(unquote);
+						break;
+					}
+					if (line[i] == '-') {
+						push_token(hyphen);
+						break;
+					}
+					if (line[i] == ',') {
+						push_token(comma);
+						s = ENDWORD;
+						break;
+					}
+					// FALLTHROUGH
+				case NOWORD:
+					if (line[i] == '"') {
+						push_token(quote);
+					} else if (isalpha(line[i])) {
+						s = WORD;
+						wordbegin = i;
+					} else if (!isspace(line[i])) {
+						push_word(string(1, line[i]));
+					}
+					break;
+				case WORD:
+					if (!isalpha(line[i])) {
+						push_word(line.substr(wordbegin, i-wordbegin));
+						s = ENDWORD;
+						--i;
+					}
+					break;
+			}
+		}
+		push_token(eos);
+
 		return true;
 	}
 
 	inline token_t add_token(string word) {
 		// noop if already exists
-		tokens.insert(make_pair(word, tokens.size()));
+		tokens.insert(make_pair(word, tokens.size()+specials));
 		tokens_rev[tokens[word]] = word;
 		return tokens[word];
 	}
 
+	inline token_t add_special_token() {
+		return tokens.size()+(specials++);
+	}
+
+	inline void push_token(token_t token) {
+		buffer.push(token);
+	}
+
 	inline void push_word(string word) {
-		buffer.push(add_token(word));
+		push_token(add_token(word));
 	}
 };
 
@@ -101,9 +198,10 @@ struct kgrams {
 			++edgecount;
 
 			// advance
-			advance_current_with(next);
+			if (next == tokens.eos) current = bos();
+			else advance_current_with(next);
 		}
-		edgelist[current].push_back(tokens.eos);
+		if (current != bos()) edgelist[current].push_back(tokens.eos);
 		++edgecount;
 
 		current = bos();
@@ -127,9 +225,9 @@ struct kgrams {
 	inline void dump() {
 		for (auto i = edgelist.begin(); i != edgelist.end(); ++i) {
 			cout << '[' << tokens.translate(i->first[0]);
-			for (int j = 1; j < K; ++j) cout << ", " << tokens.translate(i->first[j]);
+			for (size_t j = 1; j < K; ++j) cout << ", " << tokens.translate(i->first[j]);
 			cout << "] = {" << tokens.translate(i->second[0]);
-			for (int j = 1; j < i->second.size(); ++j) cout << ", " << tokens.translate(i->second[j]);
+			for (size_t j = 1; j < i->second.size(); ++j) cout << ", " << tokens.translate(i->second[j]);
 			cout << "}" << endl;
 		}
 	}
@@ -156,10 +254,12 @@ private:
 int main() {
 	tokenizer tok(cin);
 	kgrams<2> k(tok);
-	k.dump();
+	//k.dump();
+	auto prev = tok.bos;
 	while (true) {
-		string word = tok.translate(k.get_next());
-		cout << word << ' ' << flush;
+		auto cur = k.get_next();
+		cout << tok.translate_with(cur, prev) << flush;
+		prev = cur;
 	}
 	return 0;
 }
