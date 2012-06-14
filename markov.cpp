@@ -9,21 +9,26 @@
 using namespace std;
 
 struct tokenizer {
-	static constexpr const char * ERROR = " error ";
-	static constexpr const char * BOS = " ^ ";
-	static constexpr const char * EOS = " $ ";
 	typedef istream input_t;
 	typedef size_t token_t;
 
+private:
+	input_t & src;
+	map<string, token_t> tokens;
+	map<token_t, string> tokens_rev;
+	queue<token_t> buffer;
+
+public:
+	const token_t error;
+	const token_t bos;
+	const token_t eos;
+
 	inline tokenizer(input_t & src)
 		: src(src)
+		, error(add_token(" error "))
+		, bos(add_token(" ^ "))
+		, eos(add_token("\n\n"))
 	{
-		tokens[ERROR] = 0;
-		tokens[BOS] = 1;
-		tokens[EOS] = 2;
-		tokens_rev[0] = ERROR;
-		tokens_rev[1] = BOS;
-		tokens_rev[2] = EOS;
 	}
 
 	inline token_t translate(string token) {
@@ -56,11 +61,6 @@ struct tokenizer {
 	}
 
 private:
-	input_t & src;
-	map<string, token_t> tokens;
-	map<token_t, string> tokens_rev;
-	queue<token_t> buffer;
-
 	inline bool get_some_input() {
 		string word;
 		if (!(src >> word)) return false;
@@ -69,12 +69,15 @@ private:
 		return true;
 	}
 
-	inline void push_word(string word) {
+	inline token_t add_token(string word) {
 		// noop if already exists
 		tokens.insert(make_pair(word, tokens.size()));
 		tokens_rev[tokens[word]] = word;
+		return tokens[word];
+	}
 
-		buffer.push(tokens[word]);
+	inline void push_word(string word) {
+		buffer.push(add_token(word));
 	}
 };
 
@@ -100,28 +103,25 @@ struct kgrams {
 			// advance
 			advance_current_with(next);
 		}
-		token_t eos = tokens.translate(tokenizer_t::EOS);
-		edgelist[current].push_back(eos);
+		edgelist[current].push_back(tokens.eos);
 		++edgecount;
 
 		current = bos();
 	}
 
-	inline string get_next() {
+	inline token_t get_next() {
 		if (!edgelist.count(current)) {
 			current = bos();
-			return tokenizer_t::ERROR;
+			return tokens.error;
 		}
 		adjacent_t & adjacents = edgelist[current];
 		size_t choice = (adjacents.size() == 1) ? 0 : (r() % adjacents.size());
 		token_t tok = adjacents[choice];
 		advance_current_with(tok);
-		string translated = tokens.translate(adjacents[choice]);
-		if (translated == tokenizer_t::EOS) {
+		if (tok == tokens.eos) {
 			current = bos();
-			return "\n\n";
 		}
-		return translated;
+		return tok;
 	}
 
 	inline void dump() {
@@ -143,12 +143,12 @@ private:
 
 	inline ktoken_t bos() {
 		ktoken_t res;
-		fill(res.begin(), res.end(), tokens.translate(tokenizer_t::BOS));
+		fill(res.begin(), res.end(), tokens.bos);
 		return res;
 	}
 
 	inline void advance_current_with(token_t next) {
-		for (size_t k = 0; k < K-1; ++k) current[k] = current[k+1];
+		copy(current.begin()+1, current.end(), current.begin());
 		current[K-1] = next;
 	}
 };
@@ -158,7 +158,7 @@ int main() {
 	kgrams<2> k(tok);
 	k.dump();
 	while (true) {
-		string word = k.get_next();
+		string word = tok.translate(k.get_next());
 		cout << word << ' ' << flush;
 	}
 	return 0;
