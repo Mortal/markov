@@ -275,7 +275,7 @@ void go() {
 	auto prev = tok.bos;
 	while (true) {
 		auto cur = k.get_next();
-		cout << tok.translate_with(cur, prev) << flush;
+		cout << tok.translate_with(cur, prev);
 		prev = cur;
 	}
 }
@@ -296,7 +296,7 @@ int main(int argc, char ** argv) {
 		auto prev = tok.bos;
 		auto cur = tok.bos;
 		while (tok >> cur) {
-			cout << tok.translate_with(cur, prev) << flush;
+			cout << tok.translate_with(cur, prev);
 			prev = cur;
 		}
 	}
