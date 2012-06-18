@@ -9,9 +9,9 @@
 
 using namespace std;
 
-template <typename child_t>
+template <typename child_t, typename token_t>
 struct tokenizer_base {
-	typedef size_t token_t;
+	typedef token_t token_type;
 
 private:
 	queue<token_t> buffer;
@@ -44,8 +44,9 @@ public:
 	}
 };
 
-struct tokenizer : public tokenizer_base<tokenizer> {
+struct tokenizer : public tokenizer_base<tokenizer, size_t> {
 	typedef istream input_t;
+	typedef token_type token_t;
 
 private:
 	input_t & src;
@@ -110,7 +111,7 @@ public:
 	}
 
 private:
-	friend class tokenizer_base<tokenizer>;
+	friend class tokenizer_base<tokenizer, token_t>;
 
 	inline bool isalnum(char c) {
 		if (std::isalnum(c) || c == '\'') return true;
@@ -198,9 +199,9 @@ private:
 	}
 };
 
-struct chartokenizer : public tokenizer_base<chartokenizer> {
+struct chartokenizer : public tokenizer_base<chartokenizer, char> {
 	typedef istream input_t;
-	typedef size_t token_t;
+	typedef token_type token_t;
 
 	const token_t error = 0;
 	const token_t bos = 1;
@@ -224,7 +225,7 @@ struct chartokenizer : public tokenizer_base<chartokenizer> {
 	}
 
 private:
-	friend class tokenizer_base<chartokenizer>;
+	friend class tokenizer_base<chartokenizer, token_t>;
 	input_t & src;
 
 	inline void get_some_input() {
