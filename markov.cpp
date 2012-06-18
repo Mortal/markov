@@ -265,10 +265,11 @@ struct kgrams {
 	typedef vector<token_t> adjacent_t;
 	typedef map<ktoken_t, adjacent_t> edgelist_t;
 
-	inline kgrams(tokenizer_t & tokens)
+	inline kgrams(tokenizer_t & tokens, mt19937 & rng)
 		: tokens(tokens)
 		, current(bos())
 		, edgecount(0)
+		, r(rng)
 	{
 		token_t next;
 		while (tokens >> next) {
@@ -316,7 +317,7 @@ private:
 	ktoken_t current;
 	edgelist_t edgelist;
 	size_t edgecount;
-	mt19937 r;
+	mt19937 & r;
 
 	inline ktoken_t bos() {
 		ktoken_t res;
@@ -331,21 +332,23 @@ private:
 };
 
 struct executor {
-	executor(istream & is, ostream & os, size_t lines)
+	executor(istream & is, ostream & os, size_t lines, mt19937 & rng)
 		: is(is)
 		, os(os)
 		, lines(lines)
+		, rng(rng)
 	{
 	}
 
 	istream & is;
 	ostream & os;
 	size_t lines;
+	mt19937 & rng;
 
 template <size_t K, typename tokenizer_t>
 void go() {
 	tokenizer_t tok(is);
-	kgrams<K, tokenizer_t> k(tok);
+	kgrams<K, tokenizer_t> k(tok, rng);
 	//k.dump();
 	auto prev = tok.bos;
 	while (true) {
@@ -362,7 +365,7 @@ void go() {
 };
 
 bool markov(istream & is, ostream & os, string arg, size_t lines, mt19937 & rng) {
-	executor e(is, os, lines);
+	executor e(is, os, lines, rng);
 	if (arg == "1") e.go<1, tokenizer>();
 	else if (arg == "2") e.go<2, tokenizer>();
 	else if (arg == "3") e.go<3, tokenizer>();
