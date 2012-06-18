@@ -330,8 +330,20 @@ private:
 	}
 };
 
+struct executor {
+	executor(istream & is, ostream & os, size_t lines)
+		: is(is)
+		, os(os)
+		, lines(lines)
+	{
+	}
+
+	istream & is;
+	ostream & os;
+	size_t lines;
+
 template <size_t K, typename tokenizer_t>
-void go(istream & is, ostream & os, size_t lines) {
+void go() {
 	tokenizer_t tok(is);
 	kgrams<K, tokenizer_t> k(tok);
 	//k.dump();
@@ -347,22 +359,24 @@ void go(istream & is, ostream & os, size_t lines) {
 		prev = cur;
 	}
 }
+};
 
 bool markov(istream & is, ostream & os, string arg, size_t lines) {
-	if (arg == "1") go<1, tokenizer>(is, os, lines);
-	else if (arg == "2") go<2, tokenizer>(is, os, lines);
-	else if (arg == "3") go<3, tokenizer>(is, os, lines);
-	else if (arg == "4") go<4, tokenizer>(is, os, lines);
-	else if (arg == "5") go<5, tokenizer>(is, os, lines);
-	else if (arg == "c1") go<1, chartokenizer>(is, os, lines);
-	else if (arg == "c2") go<2, chartokenizer>(is, os, lines);
-	else if (arg == "c3") go<3, chartokenizer>(is, os, lines);
-	else if (arg == "c4") go<4, chartokenizer>(is, os, lines);
-	else if (arg == "c5") go<5, chartokenizer>(is, os, lines);
-	else if (arg == "c6") go<6, chartokenizer>(is, os, lines);
-	else if (arg == "c7") go<7, chartokenizer>(is, os, lines);
-	else if (arg == "c8") go<8, chartokenizer>(is, os, lines);
-	else if (arg == "c9") go<9, chartokenizer>(is, os, lines);
+	executor e(is, os, lines);
+	if (arg == "1") e.go<1, tokenizer>();
+	else if (arg == "2") e.go<2, tokenizer>();
+	else if (arg == "3") e.go<3, tokenizer>();
+	else if (arg == "4") e.go<4, tokenizer>();
+	else if (arg == "5") e.go<5, tokenizer>();
+	else if (arg == "c1") e.go<1, chartokenizer>();
+	else if (arg == "c2") e.go<2, chartokenizer>();
+	else if (arg == "c3") e.go<3, chartokenizer>();
+	else if (arg == "c4") e.go<4, chartokenizer>();
+	else if (arg == "c5") e.go<5, chartokenizer>();
+	else if (arg == "c6") e.go<6, chartokenizer>();
+	else if (arg == "c7") e.go<7, chartokenizer>();
+	else if (arg == "c8") e.go<8, chartokenizer>();
+	else if (arg == "c9") e.go<9, chartokenizer>();
 	else if (arg == "parse") {
 		tokenizer tok(is);
 		auto prev = tok.bos;
