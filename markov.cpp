@@ -198,7 +198,7 @@ private:
 	}
 };
 
-struct chartokenizer {
+struct chartokenizer : public tokenizer_base<chartokenizer> {
 	typedef istream input_t;
 	typedef size_t token_t;
 
@@ -223,37 +223,15 @@ struct chartokenizer {
 		return translate(token);
 	}
 
-	inline operator bool() {
-		return has_input();
-	}
+private:
+	friend class tokenizer_base<chartokenizer>;
+	input_t & src;
 
-	inline bool has_input() {
-		if (buffer.size()) return true;
+	inline void get_some_input() {
 		char c;
 		src.get(c);
-		if (!src.good()) return false;
+		if (!src.good()) return;
 		push_token(c);
-		return true;
-	}
-
-	inline chartokenizer & operator>>(token_t & dest) {
-		if (!has_input()) return *this;
-		dest = pop_input();
-		return *this;
-	}
-
-	inline token_t pop_input() {
-		if (!has_input()) throw "No input";
-		token_t val = buffer.front();
-		buffer.pop();
-		return val;
-	}
-
-private:
-	input_t & src;
-	queue<token_t> buffer;
-	inline void push_token(token_t token) {
-		buffer.push(token);
 	}
 
 };
