@@ -9,16 +9,49 @@
 
 using namespace std;
 
-struct tokenizer {
-	typedef istream input_t;
+template <typename child_t>
+struct tokenizer_base {
 	typedef size_t token_t;
+
+private:
+	queue<token_t> buffer;
+	bool went_well;
+
+	inline child_t & self() { return *reinterpret_cast<child_t *>(this); }
+
+protected:
+	inline void push_token(token_t token) {
+		buffer.push(token);
+	}
+
+public:
+	inline operator bool() {
+		return went_well;
+	}
+
+	inline bool has_input() {
+		if (buffer.size()) return true;
+		self().get_some_input();
+		return 0 < buffer.size();
+	}
+
+	inline child_t & operator>>(token_t & dest) {
+		went_well = has_input();
+		if (!went_well) return self();
+		dest = buffer.front();
+		buffer.pop();
+		return self();
+	}
+};
+
+struct tokenizer : public tokenizer_base<tokenizer> {
+	typedef istream input_t;
 
 private:
 	input_t & src;
 	size_t specials; // number of special tokens
 	map<string, token_t> tokens;
 	map<token_t, string> tokens_rev;
-	queue<token_t> buffer;
 
 public:
 	const token_t error = add_special_token();
@@ -76,37 +109,17 @@ public:
 		return ' '+word;
 	}
 
-	inline operator bool() {
-		return has_input();
-	}
-
-	inline bool has_input() {
-		if (buffer.size()) return true;
-		return get_some_input();
-	}
-
-	inline tokenizer & operator>>(token_t & dest) {
-		if (!has_input()) return *this;
-		dest = pop_input();
-		return *this;
-	}
-
-	inline token_t pop_input() {
-		if (!has_input()) throw "No input";
-		token_t val = buffer.front();
-		buffer.pop();
-		return val;
-	}
-
 private:
+	friend class tokenizer_base<tokenizer>;
+
 	inline bool isalnum(char c) {
 		if (std::isalnum(c) || c == '\'') return true;
 		return false;
 	}
 
-	inline bool get_some_input() {
+	inline void get_some_input() {
 		string line;
-		if (!getline(src, line)) return false;
+		if (!getline(src, line)) return;
 		enum state {
 			NOWORD,
 			ENDWORD,
@@ -167,8 +180,6 @@ private:
 			}
 		}
 		push_token(eos);
-
-		return true;
 	}
 
 	inline token_t add_token(string word) {
@@ -180,10 +191,6 @@ private:
 
 	inline token_t add_special_token() {
 		return tokens.size()+(specials++);
-	}
-
-	inline void push_token(token_t token) {
-		buffer.push(token);
 	}
 
 	inline void push_word(string word) {
@@ -324,48 +331,48 @@ private:
 };
 
 template <size_t K, typename tokenizer_t>
-void go() {
-	tokenizer_t tok(cin);
+void go(istream & is, ostream & os, size_t lines) {
+	tokenizer_t tok(is);
 	kgrams<K, tokenizer_t> k(tok);
 	//k.dump();
 	auto prev = tok.bos;
 	while (true) {
 		auto cur = k.get_next();
-		cout << tok.translate_with(cur, prev);
+		string out = tok.translate_with(cur, prev);
+		if (out.find_first_of('\n') != string::npos)
+			--lines;
+		os << out;
+		if (!lines)
+			break;
 		prev = cur;
 	}
 }
 
-int main(int argc, char ** argv) {
-	if (argc < 2) {
-		cout << "Usage: " << argv[0] << " K" << endl;
-		return 1;
-	}
-	string arg(argv[1]);
-	if (arg == "1") go<1, tokenizer>();
-	else if (arg == "2") go<2, tokenizer>();
-	else if (arg == "3") go<3, tokenizer>();
-	else if (arg == "4") go<4, tokenizer>();
-	else if (arg == "5") go<5, tokenizer>();
-	else if (arg == "c1") go<1, chartokenizer>();
-	else if (arg == "c2") go<2, chartokenizer>();
-	else if (arg == "c3") go<3, chartokenizer>();
-	else if (arg == "c4") go<4, chartokenizer>();
-	else if (arg == "c5") go<5, chartokenizer>();
-	else if (arg == "c6") go<6, chartokenizer>();
-	else if (arg == "c7") go<7, chartokenizer>();
-	else if (arg == "c8") go<8, chartokenizer>();
-	else if (arg == "c9") go<9, chartokenizer>();
+bool markov(istream & is, ostream & os, string arg, size_t lines) {
+	if (arg == "1") go<1, tokenizer>(is, os, lines);
+	else if (arg == "2") go<2, tokenizer>(is, os, lines);
+	else if (arg == "3") go<3, tokenizer>(is, os, lines);
+	else if (arg == "4") go<4, tokenizer>(is, os, lines);
+	else if (arg == "5") go<5, tokenizer>(is, os, lines);
+	else if (arg == "c1") go<1, chartokenizer>(is, os, lines);
+	else if (arg == "c2") go<2, chartokenizer>(is, os, lines);
+	else if (arg == "c3") go<3, chartokenizer>(is, os, lines);
+	else if (arg == "c4") go<4, chartokenizer>(is, os, lines);
+	else if (arg == "c5") go<5, chartokenizer>(is, os, lines);
+	else if (arg == "c6") go<6, chartokenizer>(is, os, lines);
+	else if (arg == "c7") go<7, chartokenizer>(is, os, lines);
+	else if (arg == "c8") go<8, chartokenizer>(is, os, lines);
+	else if (arg == "c9") go<9, chartokenizer>(is, os, lines);
 	else if (arg == "parse") {
-		tokenizer tok(cin);
+		tokenizer tok(is);
 		auto prev = tok.bos;
 		auto cur = tok.bos;
 		while (tok >> cur) {
-			cout << tok.translate_with(cur, prev);
+			os << tok.translate_with(cur, prev);
 			prev = cur;
 		}
 	}
-	else return 1;
-	return 0;
+	else return false;
+	return true;
 }
 // vim:set ts=4 sts=4 sw=4:
