@@ -361,7 +361,7 @@ void go() {
 }
 };
 
-bool markov(istream & is, ostream & os, string arg, size_t lines) {
+bool markov(istream & is, ostream & os, string arg, size_t lines, mt19937 & rng) {
 	executor e(is, os, lines);
 	if (arg == "1") e.go<1, tokenizer>();
 	else if (arg == "2") e.go<2, tokenizer>();
@@ -388,5 +388,10 @@ bool markov(istream & is, ostream & os, string arg, size_t lines) {
 	}
 	else return false;
 	return true;
+}
+
+bool markov(istream & is, ostream & os, string arg, size_t lines) {
+	mt19937 rng;
+	return markov(is, os, arg, lines, rng);
 }
 // vim:set ts=4 sts=4 sw=4:
