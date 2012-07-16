@@ -6,6 +6,7 @@
 #include <queue>
 #include <random>
 #include <cctype> // isalnum
+#include "markov.h"
 
 using namespace std;
 
@@ -111,7 +112,7 @@ public:
 	}
 
 private:
-	friend class tokenizer_base<tokenizer, token_t>;
+	friend struct tokenizer_base<tokenizer, token_t>;
 
 	inline bool isalnum(char c) {
 		if (std::isalnum(c) || c == '\'') return true;
@@ -121,6 +122,12 @@ private:
 	inline void get_some_input() {
 		string line;
 		if (!getline(src, line)) return;
+		use_line(line);
+		push_token(eos);
+	}
+
+public:
+	void use_line(const string & line) {
 		enum state {
 			NOWORD,
 			ENDWORD,
@@ -180,9 +187,9 @@ private:
 					break;
 			}
 		}
-		push_token(eos);
 	}
 
+private:
 	inline token_t add_token(string word) {
 		// noop if already exists
 		tokens.insert(make_pair(word, tokens.size()+specials));
@@ -225,7 +232,7 @@ struct chartokenizer : public tokenizer_base<chartokenizer, char> {
 	}
 
 private:
-	friend class tokenizer_base<chartokenizer, token_t>;
+	friend struct tokenizer_base<chartokenizer, token_t>;
 	input_t & src;
 
 	inline void get_some_input() {
@@ -250,6 +257,10 @@ struct kgrams {
 		, edgecount(0)
 		, r(rng)
 	{
+		slurp_tokens(tokens);
+	}
+
+	void slurp_tokens(tokenizer_t & tokens) {
 		token_t next;
 		while (tokens >> next) {
 			// insert edge if not exists, and increment count
@@ -281,6 +292,14 @@ struct kgrams {
 		return tok;
 	}
 
+	inline adjacent_t get_next_pool() {
+		if (!edgelist.count(current)) {
+			return adjacent_t();
+		}
+		adjacent_t & adjacents = edgelist[current];
+		return adjacents;
+	}
+
 	inline void dump() {
 		for (auto i = edgelist.begin(); i != edgelist.end(); ++i) {
 			cout << '[' << tokens.translate(i->first[0]);
@@ -288,6 +307,15 @@ struct kgrams {
 			cout << "] = {" << tokens.translate(i->second[0]);
 			for (size_t j = 1; j < i->second.size(); ++j) cout << ", " << tokens.translate(i->second[j]);
 			cout << "}" << endl;
+		}
+	}
+
+	inline void set_state(string with) {
+		tokens.use_line(with+' ');
+		current = bos();
+		token_t next;
+		while (tokens >> next) {
+			advance_current_with(next);
 		}
 	}
 
@@ -376,4 +404,63 @@ bool markov(istream & is, ostream & os, string arg, size_t lines) {
 	mt19937 rng;
 	return markov(is, os, arg, lines, rng);
 }
+
+struct wordcompleter_impl : public wordcompleter {
+	static const size_t K = 1;
+	typedef kgrams<K, tokenizer> k_t;
+
+	wordcompleter_impl()
+		: tokens(dummysource)
+		, k(tokens, rng)
+	{
+	}
+
+	void learn_i(const std::string & line) {
+		tokens.use_line(line+' ');
+		k.slurp_tokens(tokens);
+	}
+
+	std::string complete_i(const std::string & linestart, const std::string & word) {
+		k.set_state(linestart);
+		k_t::adjacent_t adjacents = k.get_next_pool();
+		map<k_t::token_t, size_t> counts;
+		for (auto i = adjacents.begin(); i != adjacents.end(); ++i) {
+			counts.insert(make_pair(*i, 0)).first++;
+		}
+		priority_queue<pair<size_t, k_t::token_t> > tops;
+		for (auto i = counts.begin(); i != counts.end(); ++i) {
+			tops.push(make_pair(i->second, i->first));
+		}
+		stringstream result;
+		for (size_t i = 0; i < 3; ++i) {
+			if (!tops.size()) break;
+			if (i) result << ' ';
+			result << tokens.translate(tops.top().second);
+			tops.pop();
+		}
+		return result.str();
+	}
+
+	mt19937 rng;
+	std::stringstream dummysource;
+	tokenizer tokens;
+	kgrams<K, tokenizer> k;
+};
+
+wordcompleter * wordcompleter::create() {
+	return new wordcompleter_impl();
+}
+
+void wordcompleter::destroy(wordcompleter * o) {
+	delete reinterpret_cast<wordcompleter_impl *>(o);
+}
+
+void wordcompleter::learn(const std::string & line) {
+	reinterpret_cast<wordcompleter_impl *>(this)->learn_i(line);
+}
+
+std::string wordcompleter::complete(const std::string & linestart, const std::string & word) {
+	return reinterpret_cast<wordcompleter_impl *>(this)->complete_i(linestart, word);
+}
+
 // vim:set ts=4 sts=4 sw=4:
