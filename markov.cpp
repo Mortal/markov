@@ -267,7 +267,6 @@ struct kgrams {
 
 	inline kgrams(tokenizer_t & tokens, mt19937 & rng)
 		: tokens(tokens)
-		, current(bos())
 		, edgecount(0)
 		, r(rng)
 	{
@@ -276,6 +275,7 @@ struct kgrams {
 
 	void slurp_tokens(tokenizer_t & tokens) {
 		token_t next;
+		current = bos();
 		while (tokens >> next) {
 			// insert edge if not exists, and increment count
 			edgelist[current].push_back(next);
@@ -439,7 +439,7 @@ struct wordcompleter::impl {
 		k_t::adjacent_t adjacents = k.get_next_pool();
 		map<k_t::token_t, size_t> counts;
 		for (auto i = adjacents.begin(); i != adjacents.end(); ++i) {
-			counts.insert(make_pair(*i, 0)).first++;
+			counts.insert(make_pair(*i, 0)).first->second++;
 		}
 		priority_queue<pair<size_t, k_t::token_t> > tops;
 		for (auto i = counts.begin(); i != counts.end(); ++i) {
