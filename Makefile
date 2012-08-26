@@ -1,6 +1,10 @@
 CXXFLAGS=-O3 -std=gnu++0x -Wall -Wextra
 all: markov irssicomplete
 
+clean:
+	$(RM) markov.o markovmain.o irssicomplete.o irssicomplete_test.o \
+		markov irssicomplete irssicomplete_test
+
 markov: markov.o markovmain.o
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $^
 
