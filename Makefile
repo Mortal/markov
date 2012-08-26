@@ -6,3 +6,9 @@ markov: markov.o markovmain.o
 
 irssicomplete: markov.o irssicomplete.o
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $^
+
+irssicomplete_test: markov.o irssicomplete_test.o
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $^
+
+test: irssicomplete_test
+	./irssicomplete_test
