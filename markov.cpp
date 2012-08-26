@@ -405,11 +405,11 @@ bool markov(istream & is, ostream & os, string arg, size_t lines) {
 	return markov(is, os, arg, lines, rng);
 }
 
-struct wordcompleter_impl : public wordcompleter {
+struct wordcompleter::impl {
 	static const size_t K = 1;
 	typedef kgrams<K, tokenizer> k_t;
 
-	wordcompleter_impl()
+	impl()
 		: tokens(dummysource)
 		, k(tokens, rng)
 	{
@@ -447,20 +447,20 @@ struct wordcompleter_impl : public wordcompleter {
 	kgrams<K, tokenizer> k;
 };
 
-wordcompleter * wordcompleter::create() {
-	return new wordcompleter_impl();
+wordcompleter::wordcompleter() {
+	pimpl = new wordcompleter::impl();
 }
 
-void wordcompleter::destroy(wordcompleter * o) {
-	delete reinterpret_cast<wordcompleter_impl *>(o);
+wordcompleter::~wordcompleter() {
+	delete pimpl;
 }
 
 void wordcompleter::learn(const std::string & line) {
-	reinterpret_cast<wordcompleter_impl *>(this)->learn_i(line);
+	pimpl->learn_i(line);
 }
 
 std::string wordcompleter::complete(const std::string & linestart, const std::string & word) {
-	return reinterpret_cast<wordcompleter_impl *>(this)->complete_i(linestart, word);
+	return pimpl->complete_i(linestart, word);
 }
 
 // vim:set ts=4 sts=4 sw=4:

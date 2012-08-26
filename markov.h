@@ -3,14 +3,16 @@
 #include <random>
 
 struct wordcompleter {
-	static wordcompleter * create();
-	static void destroy(wordcompleter *);
+	struct impl;
 
 	void learn(const std::string & line);
 	std::string complete(const std::string & linestart, const std::string & word);
-protected:
-	wordcompleter() {};
-	~wordcompleter() {};
+
+	wordcompleter();
+	~wordcompleter();
+
+private:
+	impl * pimpl;
 };
 
 bool markov(std::istream & is, std::ostream & os, std::string arg, size_t lines, std::mt19937 & rng);
