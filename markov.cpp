@@ -43,6 +43,20 @@ public:
 		buffer.pop();
 		return self();
 	}
+
+	inline void dump() {
+		cout << "Tokenizer [" << buffer.size() << "] = {";
+		size_t n = buffer.size();
+		deque<token_t> items;
+		for (size_t i = 0; i < n; ++i) {
+			if (i > 0) cout << ", ";
+			cout << self().translate(buffer.front());
+			items.push_back(buffer.front());
+			buffer.pop();
+		}
+		cout << '}' << endl;
+		buffer = queue<token_t>(items);
+	}
 };
 
 struct tokenizer : public tokenizer_base<tokenizer, size_t> {
